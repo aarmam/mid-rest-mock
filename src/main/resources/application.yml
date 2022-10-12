@@ -1,0 +1,61 @@
+server:
+  tomcat:
+    threads:
+      max: 1024 # = requests per second * (latencyRangeEnd / 1000)
+      min-spare: 32
+
+spring:
+  application:
+    name: mid-rest-mock
+  profiles:
+    active: chaos-monkey
+
+chaos:
+  monkey:
+    enabled: true
+    watcher:
+      restController: true
+    assaults:
+      level: 1
+      latencyActive: true
+      exceptionsActive: false
+      latencyRangeStart: 8000
+      latencyRangeEnd: 60000
+      watchedCustomServices:
+        - com.nortal.mid.mock.controller.MidApiController.authenticationStatus
+        - com.nortal.mid.mock.controller.MidApiController.signatureStatus
+      exception:
+        type: com.nortal.mid.mock.error.ChaosException
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    shutdown:
+      enabled: true
+    chaosmonkey:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,chaosmonkey,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99
+
+mid:
+  key-store-path: classpath:signing-keystore.p12
+  key-store-type: PKCS12
+  key-store-password: 1234
+  auth-key-alias: auth
+  auth-algorithm: SHA384withECDSA
+  sign-key-alias: sign
+  sign-algorithm: SHA384withECDSA
+  cache:
+    expire-after-write: 300s
+    evict-after-status-request: false
